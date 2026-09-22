@@ -1,0 +1,233 @@
+﻿@page "/"
+@using System.Globalization
+@inject IJSRuntime JS
+
+<PageTitle>Frequency | Distribution calculator</PageTitle>
+
+<main class="frequency-shell">
+	<header class="hero">
+		<div class="brand-mark" aria-hidden="true">f<span>x</span></div>
+		<div>
+			<p class="eyebrow">STATISTICS WORKBENCH</p>
+			<h1>Frequency distribution</h1>
+			<p class="hero-copy">Turn a list of observations into a readable statistical snapshot.</p>
+		</div>
+		<div class="hero-note">Instant<br /><strong>analysis</strong></div>
+	</header>
+
+	<section class="workspace-grid">
+		<div class="input-panel panel">
+			<div class="panel-heading">
+				<div><p class="section-label">01 / Input</p><h2>Your observations</h2></div>
+				<span class="data-badge">@ObservationCount values</span>
+			</div>
+			<label for="observations">Enter numbers separated by commas, spaces, or new lines</label>
+			<textarea id="observations" @bind="DataInput" @bind:event="oninput" spellcheck="false"></textarea>
+			<div class="grouping-row">
+				<label class="toggle-label" for="grouped-data">
+					<input id="grouped-data" type="checkbox" @bind="UseGroupedData" />
+					<span>Group into class intervals</span>
+				</label>
+				<div class="range-wrap">
+					<label for="range-from">From</label>
+					<input id="range-from" type="number" step="1" @bind="RangeFrom" />
+					<label for="range-to">To</label>
+					<input id="range-to" type="number" step="1" @bind="RangeTo" />
+				</div>
+			</div>
+			<div class="input-footer"><span class="hint">Tip: repeated values become frequency counts.</span><button class="ghost-button" @onclick="LoadExample">Load example</button></div>
+			<button class="analyze-button" @onclick="Analyze"><span>Analyze distribution</span><span class="arrow">-&gt;</span></button>
+			@if (!string.IsNullOrWhiteSpace(ErrorMessage)) { <p class="error-message" role="alert">@ErrorMessage</p> }
+		</div>
+
+		<div class="summary-panel panel">
+			<div class="panel-heading">
+				<div><p class="section-label">02 / Summary</p><h2>At a glance</h2></div>
+				<span class="live-dot">LIVE</span>
+			</div>
+			<div class="metric-grid">
+				<div class="metric"><span>Count</span><strong>@ObservationCount</strong><small>observations</small></div>
+				<div class="metric"><span>Mean</span><strong>@FormatNumber(Mean)</strong><small>average value</small></div>
+				<div class="metric"><span>Median</span><strong>@FormatNumber(Median)</strong><small>middle value</small></div>
+				<div class="metric"><span>Mode</span><strong>@ModeText</strong><small>most frequent</small></div>
+				<div class="metric"><span>Standard deviation <b>σ</b></span><strong>@FormatNumber(PopulationStandardDeviation)</strong><small>population spread</small></div>
+				<div class="metric metric-wide"><span>Range</span><strong>@FormatNumber(Range)</strong><small>@FormatNumber(Minimum) to @FormatNumber(Maximum)</small></div>
+			</div>
+		</div>
+	</section>
+
+	<section class="results-panel panel">
+		<div class="results-heading">
+			<div><p class="section-label">03 / Distribution</p><h2>Frequency table</h2></div>
+			<div class="deviation-pair"><div><span>Standard deviation <b>σ</b></span><strong>@FormatNumber(PopulationStandardDeviation)</strong></div><div><span>Sample SD <b>s</b></span><strong>@FormatNumber(SampleStandardDeviation)</strong></div><div><span>SD check</span><strong class="check-value">@StandardDeviationCheck</strong></div></div>
+		</div>
+		<div class="table-wrap">
+			<table>
+				<thead><tr><th>@(UseGroupedData ? "Class" : "Value")</th><th>Frequency <span>f</span></th><th>Less-than <span>&lt;cf</span></th><th>More-than <span>&gt;cf</span></th><th>Relative <span>rf</span></th><th>Relative % <span>rf(%)</span></th><th>Less-than % <span>&lt;rf(%)</span></th><th>Greater-than % <span>&gt;rf(%)</span></th></tr></thead>
+				<tbody>
+					@foreach (var row in Rows)
+					{
+						<tr>
+							<td class="value-cell">@(UseGroupedData ? row.Label : FormatNumber(row.Value))</td>
+							<td>@row.Frequency</td>
+							<td>@row.LessThanCumulativeFrequency</td>
+							<td>@row.MoreThanCumulativeFrequency</td>
+							<td>@FormatNumber(row.RelativeFrequency)</td>
+							<td>@FormatPercentage(row.RelativeFrequency)</td>
+							<td>@FormatPercentage(row.LessThanRelativeFrequency)</td>
+							<td>@FormatPercentage(row.MoreThanRelativeFrequency)</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</section>
+
+	<section class="charts-section">
+		<div class="section-intro">
+			<div><p class="section-label">04 / Visuals</p><h2>Distribution graphs</h2></div>
+			<div class="section-actions">
+				<span>Same data, three perspectives</span>
+				<button class="ghost-button export-button" @onclick="ExportChartsToPdf">Export chart PDF</button>
+			</div>
+		</div>
+		<div class="charts-grid">
+			<div class="chart-card">
+				<div class="chart-title"><strong>Histogram</strong><span>frequency by value</span></div>
+				<svg class="chart" viewBox="0 0 600 280" role="img" aria-label="Histogram of frequency by value">
+					<line class="axis" x1="48" y1="230" x2="575" y2="230" /><line class="axis" x1="48" y1="24" x2="48" y2="230" />
+					@foreach (var bar in HistogramBars)
+					{
+						<rect class="histogram-bar" x="@bar.X" y="@bar.Y" width="@bar.Width" height="@bar.Height"><title>@FormatNumber(bar.Value): @bar.Frequency</title></rect>
+						<foreignObject x="@(bar.X + bar.Width / 2 - 25)" y="235" width="50" height="20"><div class="svg-label" xmlns="http://www.w3.org/1999/xhtml">@FormatNumber(bar.Value)</div></foreignObject>
+					}
+					<foreignObject x="260" y="256" width="100" height="22"><div class="svg-axis-label" xmlns="http://www.w3.org/1999/xhtml">Value</div></foreignObject><foreignObject x="0" y="84" width="35" height="100"><div class="svg-axis-label vertical" xmlns="http://www.w3.org/1999/xhtml">Frequency</div></foreignObject>
+				</svg>
+			</div>
+
+			<div class="chart-card">
+				<div class="chart-title"><strong>Frequency polygon</strong><span>frequency trend</span></div>
+				<svg class="chart" viewBox="0 0 600 280" role="img" aria-label="Frequency polygon showing frequency trend">
+					<line class="axis" x1="48" y1="230" x2="575" y2="230" /><line class="axis" x1="48" y1="24" x2="48" y2="230" />
+					<polyline class="polygon-line" points="@FrequencyPolygonPoints" />
+					@foreach (var point in FrequencyPolygon)
+					{
+						<circle class="polygon-point" cx="@point.X" cy="@point.Y" r="5"><title>@FormatNumber(point.Value): @point.Frequency</title></circle>
+					}
+					@foreach (var point in FrequencyPolygon.Where(point => point.Frequency > 0)) { <foreignObject x="@(point.X - 25)" y="235" width="50" height="20"><div class="svg-label" xmlns="http://www.w3.org/1999/xhtml">@FormatNumber(point.Value)</div></foreignObject> }
+					<foreignObject x="260" y="256" width="100" height="22"><div class="svg-axis-label" xmlns="http://www.w3.org/1999/xhtml">Value</div></foreignObject><foreignObject x="0" y="84" width="35" height="100"><div class="svg-axis-label vertical" xmlns="http://www.w3.org/1999/xhtml">Frequency</div></foreignObject>
+				</svg>
+			</div>
+
+			<div class="chart-card chart-wide">
+				<div class="chart-title"><strong>Cumulative frequency graph <em>(ogive)</em></strong><span>less-than cumulative</span></div>
+				<svg class="chart" viewBox="0 0 1200 280" role="img" aria-label="Cumulative frequency ogive">
+					<line class="axis" x1="48" y1="230" x2="1175" y2="230" /><line class="axis" x1="48" y1="24" x2="48" y2="230" />
+					<polyline class="ogive-line" points="@OgivePoints" />
+					@foreach (var point in Ogive)
+					{
+						<circle class="ogive-point" cx="@point.X" cy="@point.Y" r="5"><title>@FormatNumber(point.Value): @point.CumulativeFrequency</title></circle>
+						<foreignObject x="@(point.X - 25)" y="235" width="50" height="20"><div class="svg-label" xmlns="http://www.w3.org/1999/xhtml">@FormatNumber(point.Value)</div></foreignObject>
+					}
+					<foreignObject x="560" y="256" width="100" height="22"><div class="svg-axis-label" xmlns="http://www.w3.org/1999/xhtml">Value</div></foreignObject><foreignObject x="0" y="84" width="35" height="100"><div class="svg-axis-label vertical" xmlns="http://www.w3.org/1999/xhtml">Cumulative frequency</div></foreignObject>
+				</svg>
+			</div>
+		</div>
+	</section>
+	<footer class="page-footer"><span>FREQUENCY / 01</span><span>Checks: sum(f) = @FrequencyCheck &middot; sum(rf) = @RelativeFrequencyCheck</span><span>Standard deviation uses direct observations.</span></footer>
+</main>
+
+@code {
+	private const string ExampleData = "12, 14, 14, 15, 16, 16, 16, 18, 19, 21, 21, 23";
+	private string DataInput { get; set; } = ExampleData;
+	private string? ErrorMessage { get; set; }
+	private bool UseGroupedData { get; set; } = true;
+	private int RangeFrom { get; set; } = 20;
+	private int RangeTo { get; set; } = 29;
+	private List<FrequencyRow> Rows { get; set; } = [];
+	private List<double> Observations { get; set; } = [];
+
+	private int ObservationCount => Observations.Count;
+	private double Mean => ObservationCount == 0 ? 0 : Observations.Average();
+	private double Median
+	{
+		get
+		{
+			if (ObservationCount == 0) return 0;
+			var ordered = Observations.OrderBy(value => value).ToList();
+			return ObservationCount % 2 == 0 ? (ordered[ObservationCount / 2 - 1] + ordered[ObservationCount / 2]) / 2 : ordered[ObservationCount / 2];
+		}
+	}
+	private double Minimum => ObservationCount == 0 ? 0 : Observations.Min();
+	private double Maximum => ObservationCount == 0 ? 0 : Observations.Max();
+	private double Range => Maximum - Minimum;
+	private string ModeText => Rows.Count == 0 ? "-" : string.Join(", ", Rows.Where(row => row.Frequency == Rows.Max(item => item.Frequency)).Select(row => UseGroupedData ? row.Label : FormatNumber(row.Value)));
+	private double PopulationStandardDeviation => StandardDeviation(0);
+	private double SampleStandardDeviation => StandardDeviation(1);
+	private string FrequencyCheck => Rows.Sum(row => row.Frequency) == ObservationCount ? "n" : "error";
+	private string RelativeFrequencyCheck => Math.Abs(Rows.Sum(row => row.RelativeFrequency) - 1) < 0.000001 ? "1" : "error";
+	private string StandardDeviationCheck => double.IsFinite(PopulationStandardDeviation) && (ObservationCount < 2 || double.IsFinite(SampleStandardDeviation)) ? "PASS" : "CHECK";
+	private List<ChartBar> HistogramBars => BuildHistogramBars();
+	private List<ChartPoint> FrequencyPolygon => BuildFrequencyPolygon();
+	private List<ChartPoint> Ogive => BuildOgive();
+	private string FrequencyPolygonPoints => string.Join(" ", FrequencyPolygon.Select(point => $"{point.X},{point.Y}"));
+	private string OgivePoints => string.Join(" ", Ogive.Select(point => $"{point.X},{point.Y}"));
+
+	protected override void OnInitialized() => Analyze();
+
+	private void LoadExample() { DataInput = ExampleData; Analyze(); }
+
+	private async Task ExportChartsToPdf()
+	{
+		await JS.InvokeVoidAsync("chartExport.exportPdf");
+	}
+
+	private void Analyze()
+	{
+		var tokens = DataInput.Split([',', ' ', '\n', '\r', '\t'], StringSplitOptions.RemoveEmptyEntries);
+		if (tokens.Length == 0) { ErrorMessage = "Add at least one numeric observation."; Observations = []; Rows = []; return; }
+		if (!tokens.All(token => double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out _))) { ErrorMessage = "Every observation must be a valid number."; return; }
+		Observations = tokens.Select(token => double.Parse(token, CultureInfo.InvariantCulture)).ToList();
+		Rows = FrequencyCalculator.BuildRows(Observations, UseGroupedData, RangeFrom, RangeTo).ToList();
+		ErrorMessage = null;
+	}
+
+	private double StandardDeviation(int denominatorOffset) => ObservationCount - denominatorOffset <= 0 ? 0 : Math.Sqrt(Observations.Sum(value => Math.Pow(value - Mean, 2)) / (ObservationCount - denominatorOffset));
+
+	private List<ChartBar> BuildHistogramBars()
+	{
+		if (Rows.Count == 0) return [];
+		var chartWidth = 527d / Rows.Count;
+		var maxFrequency = Rows.Max(row => row.Frequency);
+		return Rows.Select((row, index) => new ChartBar(row.Value, row.Frequency, 49 + index * chartWidth, 230 - row.Frequency * 190d / maxFrequency, Math.Max(chartWidth - 3, 2), row.Frequency * 190d / maxFrequency)).ToList();
+	}
+
+	private List<ChartPoint> BuildFrequencyPolygon()
+	{
+		if (Rows.Count == 0) return [];
+		var maxFrequency = Rows.Max(row => row.Frequency);
+		var step = Rows.Count == 1 ? 527d : 527d / (Rows.Count - 1);
+		return Rows.Select((row, index) => new ChartPoint(row.Value, row.Frequency, 49 + index * step, 230 - row.Frequency * 190d / maxFrequency)).ToList();
+	}
+
+	private List<ChartPoint> BuildOgive()
+	{
+		if (Rows.Count == 0) return [];
+		var step = Rows.Count == 1 ? 527d : 527d / (Rows.Count - 1);
+		return Rows.Select((row, index) => new ChartPoint(row.Value, row.LessThanCumulativeFrequency, 49 + index * step, 230 - row.LessThanCumulativeFrequency * 190d / ObservationCount)).ToList();
+	}
+	private static string FormatNumber(double value) => value.ToString("G4", CultureInfo.InvariantCulture);
+	private static string FormatPercentage(double value) => $"{FormatSignificant(value * 100, 4)}%";
+	private static string FormatSignificant(double value, int significantFigures)
+	{
+		if (value == 0) return 0.ToString($"F{significantFigures - 1}", CultureInfo.InvariantCulture);
+		var digitsBeforeDecimal = (int)Math.Floor(Math.Log10(Math.Abs(value))) + 1;
+		var decimalPlaces = Math.Max(0, significantFigures - digitsBeforeDecimal);
+		return value.ToString($"F{decimalPlaces}", CultureInfo.InvariantCulture);
+	}
+	private sealed record ChartBar(double Value, int Frequency, double X, double Y, double Width, double Height);
+	private sealed record ChartPoint(double Value, int Frequency, double X, double Y)
+	{
+		public int CumulativeFrequency => Frequency;
+	}
+}

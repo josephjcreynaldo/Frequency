@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "DdxM7ADMOFs=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\joseph.reynaldo\\source\\Workspaces\\Frequency\\Frequency.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\joseph.reynaldo\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.12\\microsoft.aspnetcore.app.internal.assets.10.0.12.nupkg.sha512"
+  ],
+  "logs": []
+}

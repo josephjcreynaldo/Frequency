@@ -1,0 +1,63 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["Frequency.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script>
+        window.chartExport = {
+            exportPdf: function () {
+                const section = document.querySelector('.charts-section');
+                if (!section) {
+                    window.print();
+                    return;
+                }
+
+                const printWindow = window.open('', '_blank', 'width=1200,height=900');
+                if (!printWindow) {
+                    window.alert('Your browser blocked the print window. Please allow pop-ups and try again.');
+                    return;
+                }
+
+                const clone = section.cloneNode(true);
+                const style = `
+                    <style>
+                        body { font-family: 'Segoe UI', sans-serif; margin: 24px; color: #17201c; background: white; }
+                        .charts-section { display: block; }
+                        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+                        .chart-card { border: 1px solid #d9dfda; padding: 20px; break-inside: avoid; }
+                        .chart-wide { grid-column: span 2; }
+                        .chart-title { display: flex; justify-content: space-between; margin-bottom: 12px; }
+                        .chart { width: 100%; height: auto; }
+                        .svg-axis-label, .svg-label { font-family: 'DM Mono', monospace; font-size: 10px; }
+                        @@media print { body { margin: 0; } .charts-section { page-break-inside: avoid; } .chart-card { break-inside: avoid; } }
+                    </style>
+                `;
+
+                printWindow.document.write('<html><head><title>Frequency Charts</title>' + style + '</head><body>' + clone.outerHTML + '</body></html>');
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 500);
+            }
+        };
+    </script>
+</body>
+
+</html>
