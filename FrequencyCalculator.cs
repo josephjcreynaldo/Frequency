@@ -4,7 +4,7 @@ namespace Frequency;
 
 public sealed class FrequencyCalculator
 {
-    public static IReadOnlyList<FrequencyRow> BuildRows(IReadOnlyList<double> observations, bool useGroupedData = false, int rangeFrom = 20, int rangeTo = 29)
+    public static IReadOnlyList<FrequencyRow> BuildRows(IReadOnlyList<double> observations, bool useGroupedData = false, int numberOfIntervals = 5)
     {
         if (observations.Count == 0)
         {
@@ -39,19 +39,31 @@ public sealed class FrequencyCalculator
                 .ToList();
         }
 
-        var normalizedFrom = Math.Min(rangeFrom, rangeTo);
-        var normalizedTo = Math.Max(rangeFrom, rangeTo);
-        var intervalSize = Math.Max(1, normalizedTo - normalizedFrom + 1);
-        var start = normalizedFrom;
+        var minObservedValue = observations.Min();
+        var maxObservedValue = observations.Max();
+        var range = maxObservedValue - minObservedValue;
+        var classCount = Math.Max(1, numberOfIntervals);
+        var observationPrecision = observations.Max(DecimalPlaces);
+        var intervalPrecision = Math.Max(1, observationPrecision);
+        var intervalScale = Math.Pow(10, intervalPrecision);
+        var intervalSize = range == 0
+            ? 1d
+            : Math.Ceiling(range / classCount * intervalScale) / intervalScale;
+        var boundaryPrecision = Math.Max(observations.Max(DecimalPlaces), DecimalPlaces(intervalSize));
+        var displayUnit = Math.Pow(10, -boundaryPrecision);
         var rows = new List<FrequencyRow>();
         var totalCountForGrouped = observations.Count;
         var cumulativeForGrouped = 0;
 
-        while (start <= observations.Max())
+        for (var index = 0; index < classCount; index++)
         {
-            var end = start + intervalSize - 1;
+            var start = minObservedValue + index * intervalSize;
+            var calculatedEnd = start + intervalSize;
+            var end = index == classCount - 1 && Math.Abs(calculatedEnd - maxObservedValue) < 0.0000001
+                ? maxObservedValue
+                : calculatedEnd;
             var valuesInInterval = observations
-                .Where(value => value >= start && value <= end)
+                .Where(value => value >= start && (index == classCount - 1 ? value <= end : value < end))
                 .ToList();
 
             var frequency = valuesInInterval.Count;
@@ -59,7 +71,14 @@ public sealed class FrequencyCalculator
             var relativeFrequency = totalCountForGrouped == 0 ? 0 : (double)frequency / totalCountForGrouped;
             var moreThanCumulativeFrequency = totalCountForGrouped - cumulativeForGrouped + frequency;
             var midpoint = valuesInInterval.Count == 0 ? start : valuesInInterval.Average();
-            var label = $"{FormatValue(start)}-{FormatValue(end)}";
+            var displayStart = index == 0
+                ? TruncateToOneDecimal(start)
+                : TruncateToOneDecimal(start - displayUnit) + 0.1d;
+            var finalEndMatchesObservedMaximum = index == classCount - 1 && Math.Abs(end - maxObservedValue) < 0.0000001;
+            var displayEnd = finalEndMatchesObservedMaximum
+                ? TruncateToOneDecimal(end)
+                : TruncateToOneDecimal(end - displayUnit);
+            var label = $"{FormatValue(displayStart)}-{FormatValue(displayEnd)}";
 
             rows.Add(new FrequencyRow(
                 midpoint,
@@ -72,8 +91,6 @@ public sealed class FrequencyCalculator
                 relativeFrequency,
                 totalCountForGrouped == 0 ? 0 : (double)cumulativeForGrouped / totalCountForGrouped,
                 totalCountForGrouped == 0 ? 0 : (double)moreThanCumulativeFrequency / totalCountForGrouped));
-
-            start += intervalSize;
         }
 
         return rows;
@@ -81,7 +98,19 @@ public sealed class FrequencyCalculator
 
     private static string FormatValue(double value)
     {
-        return value.ToString("G4", CultureInfo.InvariantCulture);
+        return value.ToString(value == Math.Truncate(value) ? "0" : "0.0", CultureInfo.InvariantCulture);
+    }
+
+    private static double TruncateToOneDecimal(double value)
+    {
+        return Math.Truncate((value + 0.000000001d) * 10d) / 10d;
+    }
+
+    private static int DecimalPlaces(double value)
+    {
+        var text = value.ToString("G15", CultureInfo.InvariantCulture);
+        var decimalIndex = text.IndexOf('.');
+        return decimalIndex >= 0 ? text.Length - decimalIndex - 1 : 0;
     }
 }
 

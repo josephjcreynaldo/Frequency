@@ -106,3 +106,4 @@ C:\Users\joseph.reynaldo\source\Workspaces\Frequency\Frequency.Tests\obj\Debug\n
 C:\Users\joseph.reynaldo\source\Workspaces\Frequency\Frequency.Tests\obj\Debug\net10.0\Frequency.Tests.pdb
 C:\Users\joseph.reynaldo\source\Workspaces\Frequency\Frequency.Tests\obj\Debug\net10.0\Frequency.Tests.genruntimeconfig.cache
 C:\Users\joseph.reynaldo\source\Workspaces\Frequency\Frequency.Tests\obj\Debug\net10.0\ref\Frequency.Tests.dll
+C:\Users\joseph.reynaldo\source\Workspaces\Frequency\Frequency.Tests\obj\Debug\net10.0\Frequency.Tests.sourcelink.json
