@@ -59,9 +59,56 @@
 			<div><p class="section-label">03 / Distribution</p><h2>Frequency table</h2></div>
 			<div class="deviation-pair"><div><span>Standard deviation <b>σ</b></span><strong>@FormatNumber(PopulationStandardDeviation)</strong></div><div><span>Sample SD <b>s</b></span><strong>@FormatNumber(SampleStandardDeviation)</strong></div><div><span>SD check</span><strong class="check-value">@StandardDeviationCheck</strong></div></div>
 		</div>
+		<div class="frequency-computation">
+			<div class="computation-overview">
+				<strong>Computation</strong>
+				<span>n = @ObservationCount</span>
+				@if (UseGroupedData && Rows.Count > 0)
+				{
+					<span>Range = @FormatNumber(Maximum) - @FormatNumber(Minimum) = @FormatNumber(Range)</span>
+					<span>Class width = @FormatNumber(Rows[0].UpperBound - Rows[0].LowerBound)</span>
+				}
+			</div>
+			<div class="computation-methods">
+				<strong>Functions used</strong>
+				<ul>
+					<li><code>Analyze()</code> parses the input and calls the row calculator.</li>
+					<li><code>FrequencyCalculator.BuildRows(Observations, @(UseGroupedData ? "true" : "false"), @NumberOfIntervals)</code> computes f, &lt;cf, &gt;cf, and relative frequencies.</li>
+					<li><code>DecimalPlaces()</code>, <code>TruncateToOneDecimal()</code>, <code>FormatValue()</code> determine grouped interval precision and labels.</li>
+					<li><code>GetCountedValues(row, index)</code> lists the observations included in each row.</li>
+					<li><code>FormatNumber()</code>, <code>FormatPercentage()</code>, <code>FormatSignificant()</code> format displayed values.</li>
+				</ul>
+				<p><strong>BuildRows explained:</strong> With ungrouped data, it sorts distinct values and counts each value's repeats. With grouped data, it splits the observed range into the requested intervals and counts observations in each interval; lower bounds are included, upper bounds excluded, except for the final interval. It then calculates each row's frequency (f), running less-than cumulative frequency (&lt;cf), more-than cumulative frequency including that row (&gt;cf), relative frequency (f/n), and cumulative relative frequencies, returning the results as <code>FrequencyRow</code> objects.</p>
+			</div>
+			<div class="computation-list">
+				@for (var index = 0; index < Rows.Count; index++)
+				{
+					var row = Rows[index];
+					var countedValues = GetCountedValues(row, index);
+					<div class="computation-row">
+						<strong>@(UseGroupedData ? row.Label : FormatNumber(row.Value))</strong>
+						<span class="counted-values">@string.Join(", ", countedValues.Select(FormatNumber))</span>
+						<code>f = @countedValues.Count; rf = @countedValues.Count / @ObservationCount = @FormatNumber(row.RelativeFrequency)</code>
+						<code>&lt;cf = @row.LessThanCumulativeFrequency; &gt;cf = @row.MoreThanCumulativeFrequency</code>
+						<code>rf(%) = @FormatNumber(row.RelativeFrequency) × 100 = @FormatPercentage(row.RelativeFrequency)</code>
+						<code>&lt;rf(%) = @row.LessThanCumulativeFrequency / @ObservationCount × 100 = @FormatPercentage(row.LessThanRelativeFrequency)</code>
+						<code>&gt;rf(%) = @row.MoreThanCumulativeFrequency / @ObservationCount × 100 = @FormatPercentage(row.MoreThanRelativeFrequency)</code>
+					</div>
+				}
+			</div>
+		</div>
 		<div class="table-wrap">
 			<table>
-				<thead><tr><th>@(UseGroupedData ? "Class" : "Value")</th><th>Frequency <span>f</span></th><th>Less-than <span>&lt;cf</span></th><th>More-than <span>&gt;cf</span></th><th>Relative <span>rf</span></th><th>Relative % <span>rf(%)</span></th><th>Less-than % <span>&lt;rf(%)</span></th><th>Greater-than % <span>&gt;rf(%)</span></th></tr></thead>
+				<thead><tr>
+					<th>@(UseGroupedData ? "Class" : "Value")</th>
+					<th>Frequency <span>f</span><small class="table-formula">count(values in row)</small></th>
+					<th>Less-than <span>&lt;cf</span><small class="table-formula">sum(f1 ... fi)</small></th>
+					<th>More-than <span>&gt;cf</span><small class="table-formula">sum(fi ... fk)</small></th>
+					<th>Relative <span>rf</span><small class="table-formula">f / n</small></th>
+					<th>Relative % <span>rf(%)</span><small class="table-formula">100 × f / n</small></th>
+					<th>Less-than % <span>&lt;rf(%)</span><small class="table-formula">100 × &lt;cf / n</small></th>
+					<th>Greater-than % <span>&gt;rf(%)</span><small class="table-formula">100 × &gt;cf / n</small></th>
+				</tr></thead>
 				<tbody>
 					@foreach (FrequencyRow row in Rows)
 					{
@@ -88,6 +135,45 @@
 				<span>Same data, three perspectives</span>
 				<button class="ghost-button export-button" @onclick="ExportChartsToPdf">Export chart PDF</button>
 			</div>
+		</div>
+		<div class="graph-computation">
+			<div class="graph-computation-heading"><strong>Graph computations</strong><span>Plotted data and vertical scale</span></div>
+			@if (Rows.Count == 0)
+			{
+				<p class="graph-computation-empty">Analyze observations to calculate graph values.</p>
+			}
+			else
+			{
+				<div class="graph-computation-grid">
+					<div class="graph-computation-item">
+						<strong>Histogram</strong>
+						<code>Function: BuildHistogramBars()</code>
+						<code>bar height = 190 × f / max(f)</code>
+						<span class="graph-pairs-label">(value, frequency)</span>
+						<div class="graph-pairs">
+							@foreach (FrequencyRow row in Rows) { <span>(@FormatNumber(row.Value), @row.Frequency)</span> }
+						</div>
+					</div>
+					<div class="graph-computation-item">
+						<strong>Frequency polygon</strong>
+						<code>Function: BuildFrequencyPolygon()</code>
+						<code>y = 230 - 190 × f / max(f)</code>
+						<span class="graph-pairs-label">Connect these (value, frequency) points</span>
+						<div class="graph-pairs">
+							@foreach (FrequencyRow row in Rows) { <span>(@FormatNumber(row.Value), @row.Frequency)</span> }
+						</div>
+					</div>
+					<div class="graph-computation-item">
+						<strong>Ogive</strong>
+						<code>Function: BuildOgive()</code>
+						<code>y = 230 - 190 × &lt;cf / n</code>
+						<span class="graph-pairs-label">(upper bound, less-than cumulative frequency)</span>
+						<div class="graph-pairs">
+							@foreach (FrequencyRow row in Rows) { <span>(@FormatNumber(row.UpperBound), @row.LessThanCumulativeFrequency)</span> }
+						</div>
+					</div>
+				</div>
+			}
 		</div>
 		<div class="charts-grid">
 			 @* Histogram *@
@@ -194,6 +280,13 @@
 	}
 
 	private double StandardDeviation(int denominatorOffset) => ObservationCount - denominatorOffset <= 0 ? 0 : Math.Sqrt(Observations.Sum(value => Math.Pow(value - Mean, 2)) / (ObservationCount - denominatorOffset));
+
+	private List<double> GetCountedValues(FrequencyRow row, int index)
+	{
+		return UseGroupedData
+			? Observations.Where(value => value >= row.LowerBound && (index == Rows.Count - 1 ? value <= row.UpperBound : value < row.UpperBound)).ToList()
+			: Observations.Where(value => value == row.Value).ToList();
+	}
 
 	private List<ChartBar> BuildHistogramBars()
 	{

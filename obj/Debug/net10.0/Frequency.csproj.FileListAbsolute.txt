@@ -82,5 +82,5 @@ C:\Users\joseph.reynaldo\source\Workspaces\Frequency\obj\Debug\net10.0\refint\Fr
 C:\Users\joseph.reynaldo\source\Workspaces\Frequency\obj\Debug\net10.0\Frequency.pdb
 C:\Users\joseph.reynaldo\source\Workspaces\Frequency\obj\Debug\net10.0\Frequency.genruntimeconfig.cache
 C:\Users\joseph.reynaldo\source\Workspaces\Frequency\obj\Debug\net10.0\ref\Frequency.dll
-C:\Users\joseph.reynaldo\source\Workspaces\Frequency\obj\Debug\net10.0\compressed\6f3p1132wl-{0}-bp1t53hkon-bp1t53hkon.gz
 C:\Users\joseph.reynaldo\source\Workspaces\Frequency\obj\Debug\net10.0\Frequency.sourcelink.json
+C:\Users\joseph.reynaldo\source\Workspaces\Frequency\obj\Debug\net10.0\compressed\6f3p1132wl-{0}-so3abi7wjt-so3abi7wjt.gz
