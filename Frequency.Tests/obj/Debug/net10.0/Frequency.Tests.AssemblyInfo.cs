@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Frequency.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+248784b3a111585dd64faccf8a8dde02c789ba44")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d4bdc813824b435e9394ed6b400af6d560b79c42")]
 [assembly: System.Reflection.AssemblyProductAttribute("Frequency.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Frequency.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

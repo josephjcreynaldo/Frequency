@@ -126,6 +126,15 @@
 				</tbody>
 			</table>
 		</div>
+		@if (Rows.Count > 0)
+		{
+			var maximumFrequency = Rows.Max(row => row.Frequency);
+			var modalRowCount = Rows.Count(row => row.Frequency == maximumFrequency);
+			<div class="results-interpretation">
+				<strong>Results &amp; interpretation</strong>
+				<p>Across @ObservationCount observations, the mean (@FormatNumber(Mean)) and median (@FormatNumber(Median)) summarize the center. Values span @FormatNumber(Minimum) to @FormatNumber(Maximum) (range @FormatNumber(Range)); the population standard deviation is @FormatNumber(PopulationStandardDeviation), a typical distance from the mean. The highest frequency is @maximumFrequency; it occurs at the @(UseGroupedData ? "class" : "value") @ModeText.</p>
+			</div>
+		}
 	</section>
 
 	<section class="charts-section">
